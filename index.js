@@ -4,7 +4,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
 // Define the proxy targets
-const targetUrlDefault = 'https://pornhub.com';
+const targetUrlDefault = 'https://xvideos.com';
 const targetUrlAwesome = 'https://google.com';
 
 // Middleware to handle proxy requests for default target
