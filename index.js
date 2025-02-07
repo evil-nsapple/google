@@ -5,7 +5,7 @@ const path = require('path');
 const app = express();
 
 // The target URL to reverse proxy to
-const targetUrl = 'https:/xvideos.com';
+const targetUrl = 'https:/xxxvideos.com';
 
 // Middleware to handle proxy requests
 const proxy = createProxyMiddleware({
