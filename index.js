@@ -1,44 +1,52 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const morgan = require('morgan'); // For better request logging
 
 const app = express();
 
-// Define the proxy targets
-const targetUrlDefault = 'http://152.53.37.155/';
-const targetUrlAwesome = 'https://google.com';
+// Configuration
+const TARGET_URL = 'http://152.53.37.155/';
+const PORT = 3000;
 
-// Middleware to handle proxy requests for default target
-const defaultProxy = createProxyMiddleware({
-  target: targetUrlDefault,
+// Middleware to log requests (better logging with morgan)
+app.use(morgan('combined')); // Standard Apache combined log format
+
+// Function to create a proxy middleware with more options
+const createProxy = (target) => createProxyMiddleware({
+  target,
   changeOrigin: true,
   secure: true,
-  pathRewrite: {
-    '^/': '/',
-  },
-  onProxyRes(proxyRes, req, res) {
+  pathRewrite: { '^/': '/' },
+  timeout: 5000, // Timeout after 5 seconds
+  onProxyRes(proxyRes, req) {
+    // Log the response status code
+    console.log(`[PROXY] Response status for ${req.method} ${req.url}: ${proxyRes.statusCode}`);
     const location = proxyRes.headers['location'];
-    if (location && location.startsWith(targetUrlDefault)) {
-      proxyRes.headers['location'] = location.replace(targetUrlDefault, req.protocol + '://' + req.get('host'));
+    if (location?.startsWith(target)) {
+      proxyRes.headers['location'] = location.replace(target, `${req.protocol}://${req.get('host')}`);
     }
+  },
+  onError(err, req, res) {
+    console.error(`Proxy Error: ${err.message}`);
+    res.status(502).json({ error: 'Bad Gateway', details: err.message });
+  },
+  // Enable CORS support for cross-origin requests
+  onProxyReq(proxyReq, req, res) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   }
 });
 
-// Middleware to handle proxy requests for /awesome
-const awesomeProxy = createProxyMiddleware({
-  target: targetUrlAwesome,
-  changeOrigin: true,
-  secure: true,
-  pathRewrite: {
-    '^/goon': '/', // Rewrite /awesome to /
-  }
+// Apply proxy middleware
+app.use('/', createProxy(TARGET_URL));
+
+// Global error handling
+app.use((err, req, res, next) => {
+  console.error(`Server Error: ${err.message}`);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
-// Apply the middleware
-app.use('/awesome', awesomeProxy); // Proxy requests to /awesome
-app.use('/', defaultProxy); // Default proxy for all other requests
-
-// Start the server on port 3000
-const port = 3000;
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+// Start server
+app.listen(PORT, () => {
+  console.log(`Proxy server running at http://localhost:${PORT}`);
 });
