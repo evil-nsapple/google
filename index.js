@@ -3,8 +3,6 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const NodeCache = require('node-cache');
-const https = require('https');
-const fs = require('fs');
 const morgan = require('morgan');
 
 // Create Express app
@@ -37,7 +35,7 @@ app.use(compression());
 const createProxy = (target) => createProxyMiddleware({
   target,
   changeOrigin: true,
-  secure: true,
+  secure: false, // Set to false since we are using HTTP
   pathRewrite: { '^/': '/' },
   timeout: 5000, // Timeout after 5 seconds
   onProxyRes(proxyRes, req, res) {
@@ -77,13 +75,7 @@ const createProxy = (target) => createProxyMiddleware({
 // Apply the proxy middleware for all routes
 app.use('/', createProxy(TARGET_URL));
 
-// HTTPS server options using your SSL certificate and key
-const options = {
-  key: fs.readFileSync('./server.key'),
-  cert: fs.readFileSync('./server.crt')
-};
-
-// Create an HTTPS server (HTTP/1.1 by default)
-https.createServer(options, app).listen(PORT, () => {
-  console.log(`HTTPS server (HTTP/1.1) running at https://localhost:${PORT}`);
+// Start the HTTP server (No SSL, only HTTP)
+app.listen(PORT, () => {
+  console.log(`Proxy server running at http://localhost:${PORT}`);
 });
