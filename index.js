@@ -3,7 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const NodeCache = require('node-cache');
-const spdy = require('spdy');
+const https = require('https');
 const fs = require('fs');
 const morgan = require('morgan');
 
@@ -16,12 +16,6 @@ const PORT = 3000;
 
 // In-memory cache for responses
 const myCache = new NodeCache();
-
-// HTTP/2 setup (Optional if you want to use HTTP/2)
-const options = {
-  key: fs.readFileSync('./server.key'),
-  cert: fs.readFileSync('./server.crt')
-};
 
 // Middleware to log requests
 app.use(morgan('combined')); // Standard Apache combined log format
@@ -83,13 +77,13 @@ const createProxy = (target) => createProxyMiddleware({
 // Apply the proxy middleware for all routes
 app.use('/', createProxy(TARGET_URL));
 
-// Start HTTP/2 server if you're using it, or fallback to regular HTTP server
-if (options.key && options.cert) {
-  spdy.createServer(options, app).listen(PORT, () => {
-    console.log(`HTTP/2 proxy server running at https://localhost:${PORT}`);
-  });
-} else {
-  app.listen(PORT, () => {
-    console.log(`Proxy server running at http://localhost:${PORT}`);
-  });
-}
+// HTTPS server options using your SSL certificate and key
+const options = {
+  key: fs.readFileSync('./server.key'),
+  cert: fs.readFileSync('./server.crt')
+};
+
+// Create an HTTPS server (HTTP/1.1 by default)
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`HTTPS server (HTTP/1.1) running at https://localhost:${PORT}`);
+});
